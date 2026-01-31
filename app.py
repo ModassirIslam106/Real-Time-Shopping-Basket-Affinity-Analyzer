@@ -2,78 +2,69 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from itertools import combinations
-import os
+import matplotlib.pyplot as plt
 
-# ==============================
+
+if "affinity_df" not in st.session_state:
+    st.session_state.affinity_df = None
+
+if "merged_df" not in st.session_state:
+    st.session_state.merged_df = None
+
+if "baskets_df" not in st.session_state:
+    st.session_state.baskets_df = None
+
+
+# =====================================================
 # PAGE CONFIG
-# ==============================
+# =====================================================
 st.set_page_config(
     page_title="Shopping Basket Affinity Analyzer",
     page_icon="🛒",
     layout="wide"
 )
 
-# ==============================
-# CUSTOM CSS (Fonts & Styling)
-# ==============================
+# =====================================================
+# CUSTOM CSS (HEADINGS ONLY – SIDEBAR UNCHANGED)
+# =====================================================
 st.markdown("""
 <style>
-/* Main page title */
 .main-title {
     font-size: 42px;
     font-weight: 800;
-    color: #2563EB; /* Bright Blue */
+    color: #2563EB;
 }
-
-/* Section headers */
 .section-title {
     font-size: 28px;
     font-weight: 700;
-    margin-top: 30px;
-    color: #0EA5A4; /* Teal */
+    color: #0EA5A4;
+    margin-top: 20px;
 }
-
-/* Supporting text */
 .sub-text {
     font-size: 16px;
-    color: #1E293B; /* Dark slate for readability */
-}
-
-/* Buttons only (no sidebar changes) */
-div.stButton > button {
-    background-color: #2563EB;
-    color: white;
-    font-weight: 600;
-    border-radius: 8px;
-}
-
-div.stButton > button:hover {
-    background-color: #1D4ED8;
+    color: #1E293B;
 }
 </style>
 """, unsafe_allow_html=True)
 
-
-
-# ==============================
+# =====================================================
 # HEADER
-# ==============================
+# =====================================================
 st.markdown('<div class="main-title">🛒 Shopping Basket Affinity Analyzer</div>', unsafe_allow_html=True)
 st.markdown(
-    '<p class="sub-text">Discover products frequently bought together using association rule mining.</p>',
+    '<p class="sub-text">Interactive analysis of products frequently bought together using association rule mining.</p>',
     unsafe_allow_html=True
 )
-
 st.divider()
 
-# ==============================
+# =====================================================
 # BASE PATH
-# ==============================
+# =====================================================
 BASE_PATH = r"D:\Shopping Basket affinity"
 
-# ==============================
-# MODEL FUNCTIONS
-# ==============================
+# =====================================================
+# DATA & MODEL FUNCTIONS
+# =====================================================
 @st.cache_data
 def load_data(base_path):
     products = pd.read_csv(f"{base_path}/data/raw/products.csv")
@@ -83,14 +74,13 @@ def load_data(base_path):
 
 
 def build_baskets(merged_df):
-    baskets = (
+    return (
         merged_df
         .groupby("transaction_id")["product_name"]
         .apply(list)
         .reset_index()
         .rename(columns={"product_name": "basket"})
     )
-    return baskets
 
 
 def generate_pairs(baskets_df):
@@ -136,39 +126,32 @@ def get_top_affinities(df, min_support, min_confidence, top_k):
     ]
     return filtered.sort_values("Lift", ascending=False).head(top_k)
 
-
-# ==============================
-# SIDEBAR (USER INPUTS)
-# ==============================
+# =====================================================
+# SIDEBAR CONTROLS
+# =====================================================
 st.sidebar.markdown("## ⚙️ Control Panel")
 
 min_support = st.sidebar.slider(
     "Minimum Support",
-    min_value=0.01,
-    max_value=0.2,
-    value=0.02,
-    step=0.01
+    0.01, 0.2, 0.02, 0.01
 )
 
 min_confidence = st.sidebar.slider(
     "Minimum Confidence",
-    min_value=0.05,
-    max_value=0.9,
-    value=0.3,
-    step=0.05
+    0.05, 0.9, 0.3, 0.05
 )
 
 top_k = st.sidebar.selectbox(
     "Top Product Pairs",
-    options=[5, 10, 15, 20],
+    [5, 10, 15, 20],
     index=1
 )
 
-run_button = st.sidebar.button("🚀 Run Affinity Analysis")
+run_button = st.sidebar.button("🚀 Run Analysis")
 
-# ==============================
+# =====================================================
 # MAIN EXECUTION
-# ==============================
+# =====================================================
 if run_button:
     with st.spinner("Analyzing shopping baskets..."):
         merged_df = load_data(BASE_PATH)
@@ -185,40 +168,133 @@ if run_button:
 
     st.success("Analysis completed successfully!")
 
-    # ==============================
-    # METRICS
-    # ==============================
-    st.markdown('<div class="section-title">📊 Key Metrics</div>', unsafe_allow_html=True)
+    # =================================================
+    # TABS
+    # =================================================
+    tab1, tab2, tab3, tab4 = st.tabs(
+        ["📊 Dashboard", "🛍 Recommendations", "📈 Explainability", "📥 Data"]
+    )
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Total Transactions", baskets_df.shape[0])
-    col2.metric("Unique Products", merged_df["product_name"].nunique())
-    col3.metric("Strong Affinities Found", top_results.shape[0])
+    # -------------------------------
+    # TAB 1: DASHBOARD
+    # -------------------------------
+    with tab1:
+        st.markdown('<div class="section-title">Dashboard Overview</div>', unsafe_allow_html=True)
 
-    # ==============================
-    # RESULTS TABLE
-    # ==============================
-    st.markdown('<div class="section-title">🔍 Top Product Affinities</div>', unsafe_allow_html=True)
-    st.dataframe(top_results, use_container_width=True)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("🧾 Transactions", baskets_df.shape[0])
+        col2.metric("📦 Products", merged_df["product_name"].nunique())
+        col3.metric("🔗 Strong Rules", top_results.shape[0])
 
-    # ==============================
-    # BUSINESS INSIGHT
-    # ==============================
-    if not top_results.empty:
-        top_rule = top_results.iloc[0]
-        st.info(
-            f"💡 Customers who buy **{top_rule['Product A']}** "
-            f"are **{top_rule['Lift']}x more likely** to buy **{top_rule['Product B']}**."
+        st.markdown("### 📦 Top Selling Products")
+        product_counts = (
+            merged_df.groupby("product_name")
+            .size()
+            .sort_values(ascending=False)
+            .head(10)
+        )
+        st.bar_chart(product_counts)
+
+        st.markdown("### 🔗 Top Product Affinities (Lift)")
+        lift_chart = top_results.set_index(
+            top_results["Product A"] + " → " + top_results["Product B"]
+        )["Lift"]
+        st.bar_chart(lift_chart)
+
+    # -------------------------------
+    # TAB 2: PRODUCT RECOMMENDATIONS
+    # -------------------------------
+        # -------------------------------
+    # TAB 2: PRODUCT RECOMMENDATIONS
+    # -------------------------------
+    # -------------------------------
+    # TAB 2: PRODUCT RECOMMENDATIONS (FIXED)
+    # -------------------------------
+    with tab2:
+        st.markdown(
+            '<div class="section-title">Product-Based Recommendations</div>',
+            unsafe_allow_html=True
+        )
+
+        selected_product = st.selectbox(
+            "Select a product",
+            sorted(merged_df["product_name"].unique())
+        )
+
+        # USE FULL affinity_df (NOT top_results)
+        rec_a = affinity_df[affinity_df["Product A"] == selected_product].copy()
+        rec_b = affinity_df[affinity_df["Product B"] == selected_product].copy()
+
+        # Normalize direction
+        rec_a["Recommended Product"] = rec_a["Product B"]
+        rec_b["Recommended Product"] = rec_b["Product A"]
+
+        recommendations = pd.concat([rec_a, rec_b], ignore_index=True)
+
+        # Apply thresholds HERE (dynamic)
+        recommendations = recommendations[
+            (recommendations["Support"] >= min_support) &
+            (recommendations["Confidence"] >= min_confidence)
+        ].sort_values("Lift", ascending=False)
+
+        if recommendations.empty:
+            st.warning(
+                "No recommendations found for this product with current thresholds. "
+                "Try lowering support or confidence."
+            )
+        else:
+            st.success(f"Customers who buy **{selected_product}** also buy:")
+            st.dataframe(
+                recommendations[
+                    ["Recommended Product", "Support", "Confidence", "Lift"]
+                ].head(10),
+                use_container_width=True
+            )
+
+
+    # -------------------------------
+    # TAB 3: EXPLAINABILITY
+    # -------------------------------
+    with tab3:
+        st.markdown('<div class="section-title">Insights & Explainability</div>', unsafe_allow_html=True)
+
+        st.info("""
+        **How to interpret the metrics:**
+
+        • **Support** → How often products are bought together  
+        • **Confidence** → Likelihood of buying B after A  
+        • **Lift** → Strength of relationship (>1 is meaningful)
+        """)
+
+        fig, ax = plt.subplots()
+        ax.scatter(affinity_df["Support"], affinity_df["Confidence"])
+        ax.set_xlabel("Support")
+        ax.set_ylabel("Confidence")
+        ax.set_title("Support vs Confidence")
+        st.pyplot(fig)
+
+    # -------------------------------
+    # TAB 4: DATA & DOWNLOAD
+    # -------------------------------
+    with tab4:
+        st.markdown('<div class="section-title">Data Preview & Export</div>', unsafe_allow_html=True)
+
+        st.dataframe(top_results, use_container_width=True)
+
+        csv = top_results.to_csv(index=False).encode("utf-8")
+
+        st.download_button(
+            "⬇️ Download Affinity Results",
+            csv,
+            "product_affinity_results.csv",
+            "text/csv"
         )
 
 else:
     st.markdown(
-        "<p class='sub-text'>Adjust the parameters in the sidebar and click <b>Run Affinity Analysis</b> to see results.</p>",
+        "<p class='sub-text'>Adjust parameters in the sidebar and click <b>Run Analysis</b>.</p>",
         unsafe_allow_html=True
     )
 
-# ==============================
-# FOOTER
-# ==============================
 st.divider()
-st.caption("Built for Hackathon | Shopping Basket Affinity Analyzer 🚀")
+st.caption("🚀 Hackathon Project | Shopping Basket Affinity Analyzer")
