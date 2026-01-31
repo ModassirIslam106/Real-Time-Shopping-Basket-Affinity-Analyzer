@@ -1,0 +1,17 @@
+product_id,product_name,category
+P001,Milk,Grocery
+P002,Bread,Grocery
+P003,Butter,Grocery
+P004,Jam,Grocery
+P005,Eggs,Grocery
+P006,Shampoo,Personal Care
+P007,Conditioner,Personal Care
+P008,Soap,Personal Care
+P009,Toothpaste,Personal Care
+P010,Laptop,Electronics
+P011,Mouse,Electronics
+P012,Keyboard,Electronics
+P013,Headphones,Electronics
+P014,Notebook,Stationery
+P015,Pen,Stationery
+P016,Marker,Stationery
