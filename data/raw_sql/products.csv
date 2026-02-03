@@ -1,0 +1,17 @@
+product_id,product_name,category
+1.0,Milk,Grocery
+2.0,Bread,Grocery
+3.0,Butter,Grocery
+4.0,Jam,Grocery
+5.0,Eggs,Grocery
+6.0,Shampoo,Personal Care
+7.0,Conditioner,Personal Care
+8.0,Soap,Personal Care
+9.0,Toothpaste,Personal Care
+10.0,Laptop,Electronics
+11.0,Mouse,Electronics
+12.0,Keyboard,Electronics
+13.0,Headphones,Electronics
+14.0,Notebook,Stationery
+15.0,Pen,Stationery
+16.0,Marker,Stationery

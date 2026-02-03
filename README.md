@@ -98,4 +98,4 @@ This makes the project demo-ready for hackathons and presentations.
 
 
 
-Presented by Modassir Islam 
+Presented by Modassir
